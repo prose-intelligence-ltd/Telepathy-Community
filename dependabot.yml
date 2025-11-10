@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    reviewers:
+      - @prose-intelligence-ltd/jordan
+
+  - package-ecosystem: pip # e.g. pip, npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    reviewers:
+      - @prose-intelligence-ltd/jordan

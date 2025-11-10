@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest an idea or enhancement
+title: "feat: <summary>"
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: Describe the user problem you're trying to solve.
+      placeholder: Users struggle to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      placeholder: Add a new endpoint that...
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Out of scope
+      description: List anything explicitly not in scope for this change.
+  - type: input
+    id: metrics
+    attributes:
+      label: Success metrics
+      placeholder: e.g. Increase conversion by 5%
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks & mitigation

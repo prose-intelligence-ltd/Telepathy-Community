@@ -1,0 +1,52 @@
+name: Bug report
+description: Report a reproducible bug or regression
+title: "bug: <summary>"
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out a bug report!
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Provide a concise description of the bug.
+      placeholder: The API returns a 500 when...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include code snippets, commands, or URLs if applicable.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: production / staging / local
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs & screenshots
+      description: Drag-and-drop logs, stack traces, or screenshots that show the issue.

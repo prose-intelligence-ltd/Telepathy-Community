@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up {{ runtime }}
+        uses: {{ setup_action }}
+        with:
+          {{ version_key }}: {{ version_value }}
+
+      - name: Install dependencies
+        run: |
+          {{ install_command }}
+
+      - name: Run tests
+        run: |
+          {{ test_command }}

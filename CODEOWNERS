@@ -1,0 +1,9 @@
+# This file tells GitHub who reviews and approves changes.
+# Syntax: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Require code owners for everything by default.
+*       @proseltd
+
+# Example: narrower paths inherit from the top-level owner unless overridden.
+# /infrastructure/ @proseltd
+# /docs/          @al-prose
