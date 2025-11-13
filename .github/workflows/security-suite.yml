@@ -1,0 +1,32 @@
+name: security-suite
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  dependency-review:
+    if: ${{ github.event_name == 'pull_request' && github.repository != 'prose-intelligence-ltd/.github' }}
+    uses: prose-intelligence-ltd/.github/.github/workflows/dependency-review.yml@main
+    
+  gitleaks:
+    uses: prose-intelligence-ltd/.github/.github/workflows/gitleaks.yml@main
+
+  iac-checkov:
+    uses: prose-intelligence-ltd/.github/.github/workflows/checkov.yml@main
+    with:
+      directory: .
+      framework: terraform,kubernetes,cloudformation
+
+  threat-model-lint:
+    uses: prose-intelligence-ltd/.github/.github/workflows/threat-model-lint.yml@main
+    with:
+      path: docs/threat-model.md
+
+  sast-semgrep:
+    uses: prose-intelligence-ltd/.github/.github/workflows/semgrep.yml@main
+    with:
+      config: p/ci
