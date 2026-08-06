@@ -4,6 +4,6 @@ Click==7.1.2
 colorama==0.4.3
 pandas
 Telethon==1.25.2
-requests==2.28.1
+requests==2.33.0
 googletrans==4.0.0rc1
 pprintpp==0.4.0

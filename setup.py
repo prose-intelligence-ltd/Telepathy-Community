@@ -19,7 +19,7 @@ setup(
         'colorama ~= 0.4.3',
         'alive_progress == 2.4.1',
         'beautifulsoup4 == 4.11.1',
-        'requests ~= 2.28.1',
+        'requests ~= 2.33.0',
         'googletrans == 4.0.0rc1',
         'pprintpp == 0.4.0',
     ],
