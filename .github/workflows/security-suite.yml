@@ -13,6 +13,17 @@
 # `published` is in the push filter because telepathydb's default branch is `published`
 # rather than `main`. Listing both keeps this file identical everywhere, which is the
 # property the drift check depends on.
+#
+# There is deliberately NO `schedule:`. Every job in this suite is CHANGE-measuring — it
+# scans the calling repo's own tree — so a nightly run on an unchanged repo re-reports
+# yesterday's verdict. With nine repos red that produced ~160 failure notifications a
+# fortnight, 36% of all CI failure noise in the org, none of it new information. A
+# recurring reminder is not a signal, and it drowns the runs that are.
+#
+# The WORLD-measuring assurance the nightly appeared to provide is real, and is covered
+# properly by `org-audit` in this repo: it enumerates the estate nightly and fails on
+# drift in secret scanning, push protection and caller stubs. That is the correct
+# placement per FAILURE_POLICY — change-measuring at PR, world-measuring on a schedule.
 
 name: security-suite
 
@@ -20,8 +31,6 @@ on:
   pull_request:
   push:
     branches: [ main, published ]
-  schedule:
-    - cron: '0 2 * * *'
   workflow_dispatch: {}
 
 jobs:
