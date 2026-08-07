@@ -1,0 +1,35 @@
+# CANONICAL security-suite caller stub.
+#
+# Every repository's .github/workflows/security-suite.yml must be byte-identical to this
+# file. org_audit.py asserts that nightly; divergence is a finding.
+#
+# There is deliberately NO `permissions:` block. The suite's jobs need nothing above the
+# org default (`read`). A block here would be the drift vector it was before: it was
+# hand-copied, 11 variants appeared across 22 repos, and the repos that missed it failed
+# at workflow STARTUP — posting no checks, so PRs went green with the security gate
+# silently not running. If a future suite job needs a wider scope, fix the job; do not
+# reintroduce the block.
+#
+# `published` is in the push filter because telepathydb's default branch is `published`
+# rather than `main`. Listing both keeps this file identical everywhere, which is the
+# property the drift check depends on.
+
+name: security-suite
+
+on:
+  pull_request:
+  push:
+    branches: [ main, published ]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  security-suite:
+    uses: prose-intelligence-ltd/.github/.github/workflows/security-suite.yml@main
+    with:
+      caller_repo: ${{ github.repository }}
+      directory: .
+      threat_model_path: docs/threat-model.md
+      checkov_framework: terraform,kubernetes,cloudformation
+      semgrep_config: p/ci
