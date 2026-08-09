@@ -1,0 +1,18 @@
+# TEMPORARY — mirrors the org baseline so this repo is green under the current reusable
+# workflow, which still reads repo-local config. Delete once .github#152 has merged and
+# the ruff-lint action supplies these rules centrally.
+#
+# Without it, ruff falls back to its defaults — notably line-length 88 against code
+# formatted at 100 — and `ruff format --check` fails.
+target-version = "py311"
+line-length = 100
+exclude = ["build", "src/telepathy/telepathy.py"]
+
+[lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path",
+  "fastapi.Header", "fastapi.Cookie", "fastapi.Body", "fastapi.Form",
+  "fastapi.File", "fastapi.Security"]
