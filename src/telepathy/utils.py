@@ -1,15 +1,17 @@
+import os
+import random
+import textwrap
+
+import requests
+from bs4 import BeautifulSoup
 from colorama import Fore, Style
 from googletrans import Translator
+
 from src.telepathy.const import __version__, user_agent
-import requests
-import textwrap
-from bs4 import BeautifulSoup
-import random
-import os
 
 
 def createPlaceholdeCls():
-    class Object(object):
+    class Object:
         pass
 
     a = Object()
@@ -74,7 +76,6 @@ def populate_user(user, group_or_chat):
 
 
 def process_message(mess, user_lang):
-
     if mess is not None:
         mess_txt = '"' + mess + '"'
     else:
@@ -143,7 +144,7 @@ def parse_html_page(url):
     total_participants = ""
     try:
         name = soup.find("div", {"class": ["tgme_page_title"]}).text
-    except:
+    except Exception:
         name = "Not found"
     try:
         group_description = (
@@ -152,7 +153,7 @@ def parse_html_page(url):
             .replace("\n", " ")
         )
         # descript = Fore.GREEN + "Description: " + Style.RESET_ALL + group_description
-    except:
+    except Exception:
         group_description = "None"
         # descript = Fore.GREEN + "Description: " + Style.RESET_ALL + group_description
     try:
@@ -165,7 +166,7 @@ def parse_html_page(url):
             .replace("subscribers", "")
             .replace("member", "")
         )
-    except:
+    except Exception:
         total_participants = "Not found"
     return {
         "name": name,
@@ -222,7 +223,6 @@ def print_shell(type, obj):
         color_print_green("  └  Location list saved to: ", obj.save_file)
 
     if type == "channel_recap" or type == "group_recap":
-
         d_wrapper = generate_textwrap("Description:")
         td_wrapper = generate_textwrap("Translated Description:")
         color_print_green("  ┬  Chat details", "")
@@ -300,14 +300,14 @@ def print_shell(type, obj):
     if type == "forwarder_stat":
         color_print_green(" [+] Forward scrape complete", "")
         color_print_green("  ┬  Statistics", "")
-        #color_print_green(
+        # color_print_green(
         #    "  ├  Forwarded messages found: ", str(obj.forward_count)
-        #)
-        #color_print_green(
+        # )
+        # color_print_green(
         #    "  ├  Forwards from active public chats: ",
         #    str(obj.forwards_found),
-        #)
-        #if hasattr(object, "private_count"):
+        # )
+        # if hasattr(object, "private_count"):
         #    color_print_green(
         #        "  ├  Forwards from private (or now private) chats: ",
         #        str(obj.private_count),
@@ -331,9 +331,7 @@ def create_file_report(save_dir, name, type, extension, file_time, append_time=T
     _time_append = ""
     if append_time:
         _time_append = "_" + file_time
-    return os.path.join(
-        "{}".format(save_dir), "{}{}_{}.{}".format(name, _time_append, type, extension)
-    )
+    return os.path.join(f"{save_dir}", f"{name}{_time_append}_{type}.{extension}")
 
 
 def clean_private_invite(url):
@@ -348,7 +346,7 @@ def evaluate_reactions(message, create=False):
     reactions = {}
     if not create and message.reactions:
         reactions_l = message.reactions.results
-        for idx, i in enumerate(reactions_l):
+        for _idx, i in enumerate(reactions_l):
             total_reactions = total_reactions + i.count
             reactions["thumbs_up"] = i.count if i.reaction == "👍" else 0
             reactions["thumbs_down"] = i.count if i.reaction == "👎" else 0

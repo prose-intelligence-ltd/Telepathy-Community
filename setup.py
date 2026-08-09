@@ -1,30 +1,30 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name="telepathy",
-    version='2.3.4',
-    author='Jordan Wildon',
-    author_email='j.wildon@pm.me',
-    packages=['telepathy'],
-    package_dir={'':'src'},
-    url='https://pypi.python.org/pypi/telepathy/',
-    license='LICENSE.txt',
-    description='An OSINT toolkit for investigating Telegram chats.',
-    long_description=open('README.md').read(),
-    long_description_content_type='text/markdown',
+    version="2.3.4",
+    author="Jordan Wildon",
+    author_email="j.wildon@pm.me",
+    packages=["telepathy"],
+    package_dir={"": "src"},
+    url="https://pypi.python.org/pypi/telepathy/",
+    license="LICENSE.txt",
+    description="An OSINT toolkit for investigating Telegram chats.",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
     install_requires=[
-        'click ~= 7.1.2',
-        'telethon == 1.36.0',
-        'pandas',
-        'colorama ~= 0.4.3',
-        'alive_progress == 2.4.1',
-        'beautifulsoup4 == 4.11.1',
-        'requests ~= 2.28.1',
-        'googletrans == 4.0.0rc1',
-        'pprintpp == 0.4.0',
+        "click ~= 7.1.2",
+        "telethon == 1.36.0",
+        "pandas",
+        "colorama ~= 0.4.3",
+        "alive_progress == 2.4.1",
+        "beautifulsoup4 == 4.11.1",
+        "requests ~= 2.28.1",
+        "googletrans == 4.0.0rc1",
+        "pprintpp == 0.4.0",
     ],
-    entry_points='''
+    entry_points="""
         [console_scripts]
         telepathy=telepathy.telepathy:cli
-    ''',
+    """,
 )

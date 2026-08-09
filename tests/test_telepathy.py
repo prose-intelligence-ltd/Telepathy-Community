@@ -1,6 +1,8 @@
-import pytest
-from src.telepathy.telepathy import Group_Chat_Analisys, Telepathy_cli
 import asyncio
+
+import pytest
+
+from src.telepathy.telepathy import Group_Chat_Analisys, Telepathy_cli
 
 
 @pytest.fixture
@@ -20,6 +22,7 @@ def detail_to_group_basic():
         "translate": False,
         "triangulate_membership": False,
     }
+
 
 def test_channel_group_basic(detail_to_group_basic):
     tele_cli = Telepathy_cli(

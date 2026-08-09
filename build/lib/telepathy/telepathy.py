@@ -1,133 +1,86 @@
 #!/usr/bin/python3
 
 """Telepathy cli interface:
-    An OSINT toolkit for investigating Telegram chats.
+An OSINT toolkit for investigating Telegram chats.
 """
 
-import pandas as pd
 import datetime
-import os
 import getpass
-import click
+import os
 import re
 import time
 
-from telepathy.utils import (
-    print_banner,
-    color_print_green,
-    populate_user,
-    process_message,
-    process_description,
-    parse_tg_date,
-    parse_html_page,
-    print_shell,
-    createPlaceholdeCls
-)
-
-from telethon.errors import SessionPasswordNeededError, ChannelPrivateError
+import click
+import pandas as pd
+from alive_progress import alive_bar
+from colorama import Fore, Style
+from telethon import TelegramClient, functions, types
+from telethon.errors import ChannelPrivateError, SessionPasswordNeededError
+from telethon.tl.functions.messages import GetDialogsRequest
 from telethon.tl.types import (
     InputPeerEmpty,
     PeerUser,
     User,
-    PeerChat,
-    PeerChannel,
-    PeerLocated,
-    ChannelParticipantCreator,
-    ChannelParticipantAdmin,
 )
-from telethon.tl.functions.messages import GetDialogsRequest
-from telethon import TelegramClient, functions, types, utils
-from telethon.utils import get_display_name, get_message_id
-from alive_progress import alive_bar
-from colorama import Fore, Style
+from telethon.utils import get_display_name
+
+from telepathy.utils import (
+    color_print_green,
+    createPlaceholdeCls,
+    parse_html_page,
+    parse_tg_date,
+    populate_user,
+    print_banner,
+    print_shell,
+    process_description,
+    process_message,
+)
+
 
 @click.command()
 @click.option(
     "--target",
     "-t",
-    #default="",
-    multiple = True,
-    help = "Specifies a chat to investigate.",
-    )
+    # default="",
+    multiple=True,
+    help="Specifies a chat to investigate.",
+)
 @click.option(
     "--comprehensive",
     "-c",
-    is_flag = True,
-    help = "Comprehensive scan, includes archiving.",
-    )
-@click.option(
-    "--media", 
-    "-m",
-    is_flag = True,
-    help = "Archives media in the specified chat."
-    )
-@click.option(
-    "--forwards",
-    "-f",
-    is_flag = True,
-    help = "Scrapes forwarded messages."
-    )
-@click.option(
-    "--user",
-    "-u",
-    is_flag = True,
-    help = "Looks up a specified user ID."
-    )
-@click.option(
-    "--location",
-    "-l",
-    is_flag = True,
-    help = "Finds users near to specified coordinates."
-    )
-@click.option(
-    "--alt", 
-    "-a", 
-    default = 0,
-    help = "Uses an alternative login."
-    )
-@click.option(
-    "--json", 
-    "-j", 
-    is_flag = True, 
-    default = False, 
-    help = "Export to JSON."
-    )
+    is_flag=True,
+    help="Comprehensive scan, includes archiving.",
+)
+@click.option("--media", "-m", is_flag=True, help="Archives media in the specified chat.")
+@click.option("--forwards", "-f", is_flag=True, help="Scrapes forwarded messages.")
+@click.option("--user", "-u", is_flag=True, help="Looks up a specified user ID.")
+@click.option("--location", "-l", is_flag=True, help="Finds users near to specified coordinates.")
+@click.option("--alt", "-a", default=0, help="Uses an alternative login.")
+@click.option("--json", "-j", is_flag=True, default=False, help="Export to JSON.")
 @click.option(
     "--export",
     "-e",
-    is_flag = True,
-    default = False,
-    help = "Export a list of chats your account is part of.",
-    )
+    is_flag=True,
+    default=False,
+    help="Export a list of chats your account is part of.",
+)
 @click.option(
     "--replies",
     "-r",
-    is_flag = True,
-    default = False,
-    help = "Enable replies analysis in channels.",
-    )
+    is_flag=True,
+    default=False,
+    help="Enable replies analysis in channels.",
+)
 @click.option(
     "--translate",
     "-tr",
-    is_flag = True,
-    default = False,
-    help = "Enable translation of chat content.",
-    )
-
+    is_flag=True,
+    default=False,
+    help="Enable translation of chat content.",
+)
 def cli(
-    target,
-    comprehensive,
-    media,
-    forwards,
-    user,
-    location,
-    alt,
-    json,
-    export,
-    replies,
-    translate
-    ):
-
+    target, comprehensive, media, forwards, user, location, alt, json, export, replies, translate
+):
     print_banner()
 
     # Defining default values
@@ -139,14 +92,14 @@ def cli(
     media_archive = True if media else False
     json_check = True if json else False
     translate_check = True if translate else False
-    last_date, chunk_size, user_language = None, 1000, 'en'
+    last_date, chunk_size, user_language = None, 1000, "en"
 
     if user:
         user_check, basic = True, False
     if location:
         location_check, basic = True, False
     if export:
-        t = " "
+        pass
 
     filetime = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M")
     filetime_clean = str(filetime)
@@ -161,9 +114,9 @@ def cli(
     # Creating core data file
     if not os.path.exists(telepathy_file):
         os.makedirs(telepathy_file)
-        
-    '''Start of API details'''
- 
+
+    """Start of API details"""
+
     def login_function():
         api_id = input("Please enter your API ID:\n")
         api_hash = input("Please enter your API Hash:\n")
@@ -221,28 +174,27 @@ def cli(
                     with open(login, "a+", encoding="utf-8") as file:
                         file.write(api_id + "," + api_hash + "," + phone_number + "\n")
 
-    '''End of API details'''
+    """End of API details"""
 
     client = TelegramClient(phone_number, api_id, api_hash)
 
     async def main():
-
         await client.connect()
 
         if not await client.is_user_authorized():
             await client.send_code_request(phone_number)
             try:
                 await client.sign_in(
-                    phone = phone_number,
+                    phone=phone_number,
                     code=input("Enter code: "),
-                    )
+                )
             except SessionPasswordNeededError:
                 await client.sign_in(
                     password=getpass.getpass(
                         prompt="Password: ",
                         stream=None,
-                        )
                     )
+                )
 
             result = client(
                 GetDialogsRequest(
@@ -251,8 +203,8 @@ def cli(
                     offset_peer=InputPeerEmpty(),
                     limit=chunk_size,
                     hash=0,
-                    )
                 )
+            )
 
         else:
             if export == True:
@@ -270,11 +222,9 @@ def cli(
                             total_participants = web_req["total_participants"]
 
                             if translate_check == True:
-                                _desc = process_description(
-                                    group_description, user_language
-                                    )
+                                _desc = process_description(group_description, user_language)
                                 translated_description = _desc["translated_text"]
-                            else: 
+                            else:
                                 translated_description = "N/A"
 
                             if Dialog.entity.broadcast is True:
@@ -287,17 +237,11 @@ def cli(
                                 chat_type = "Chat"
 
                             if Dialog.entity.restriction_reason is not None:
-                                ios_restriction = Dialog.entity.restriction_reason[
-                                    0
-                                ]
+                                ios_restriction = Dialog.entity.restriction_reason[0]
                                 if 1 in Dialog.entity.restriction_reason:
-                                    android_restriction = (
-                                        Dialog.entity.restriction_reason[1]
-                                    )
+                                    android_restriction = Dialog.entity.restriction_reason[1]
                                     group_status = (
-                                        str(ios_restriction)
-                                        + ", "
-                                        + str(android_restriction)
+                                        str(ios_restriction) + ", " + str(android_restriction)
                                     )
                                 else:
                                     group_status = str(ios_restriction)
@@ -349,7 +293,7 @@ def cli(
                                     sep=";",
                                     mode="w",
                                     index=False,
-                            )
+                                )
 
                     except AttributeError:
                         pass
@@ -362,7 +306,7 @@ def cli(
                             alphanumeric += character
 
                     if "https://t.me/+" in t:
-                        t = t.replace('https://t.me/+', 'https://t.me/joinchat/')
+                        t = t.replace("https://t.me/+", "https://t.me/joinchat/")
 
                     if basic == True or comp_check == True:
                         save_directory = telepathy_file + alphanumeric
@@ -412,15 +356,9 @@ def cli(
                         if not os.path.exists(forward_directory):
                             os.makedirs(forward_directory)
 
-                        edgelist_file = (
-                            forward_directory
-                            + "/"
-                            + alphanumeric
-                            + "_edgelist.csv"
-                        )
+                        edgelist_file = forward_directory + "/" + alphanumeric + "_edgelist.csv"
 
                     if basic is True or comp_check is True:
-
                         color_print_green(" [-] ", "Fetching details for " + t + "...")
 
                         memberlist_directory = save_directory + "/memberlists"
@@ -428,21 +366,15 @@ def cli(
                             os.makedirs(memberlist_directory)
 
                         memberlist_filename = (
-                            memberlist_directory 
-                            + "/" 
-                            + alphanumeric 
-                            + "_members.csv"
+                            memberlist_directory + "/" + alphanumeric + "_members.csv"
                         )
 
                         reply_memberlist_filename = (
-                            memberlist_directory
-                            + "/"
-                            + alphanumeric
-                            + "_active_members.csv"
+                            memberlist_directory + "/" + alphanumeric + "_active_members.csv"
                         )
 
                         entity = await client.get_entity(t)
-                        
+
                         first_post = "Not found"
 
                         async for message in client.iter_messages(t, reverse=True):
@@ -467,21 +399,20 @@ def cli(
                         total_participants = web_req["total_participants"]
 
                         if translate_check == True:
-                            _desc = process_description(
-                                group_description, user_language
-                            )
+                            _desc = process_description(group_description, user_language)
 
-                            original_language = _desc[
-                                "original_language"
-                            ]
+                            original_language = _desc["original_language"]
                             translated_description = _desc["translated_text"]
                         else:
                             translated_description = "N/A"
 
-                        group_description = ('"' + group_description + '"')
+                        group_description = '"' + group_description + '"'
 
-                        if(entity.__class__ == User):
-                            color_print_green(" [!] ", "You can't search for users using flag -c, run Telepathy using the flag -u.")
+                        if entity.__class__ == User:
+                            color_print_green(
+                                " [!] ",
+                                "You can't search for users using flag -c, run Telepathy using the flag -u.",
+                            )
                             exit(1)
 
                         if entity.broadcast is True:
@@ -498,9 +429,7 @@ def cli(
                             if 1 in entity.restriction_reason:
                                 android_restriction = entity.restriction_reason[1]
                                 group_status = (
-                                    str(ios_restriction)
-                                    + ", "
-                                    + str(android_restriction)
+                                    str(ios_restriction) + ", " + str(android_restriction)
                                 )
                             else:
                                 group_status = str(ios_restriction)
@@ -556,22 +485,22 @@ def cli(
                         if chat_type != "Channel":
                             print("\n")
                             color_print_green(" [+] Memberlist fetched", "")
-                        
-                        setattr(entity, "group_description", group_description)
-                        setattr(entity, "group_status", group_status)
-                        setattr(entity, "group_username", group_username)
-                        setattr(entity, "first_post", first_post)
-                        setattr(entity, "group_url", group_url)
-                        setattr(entity, "chat_type", chat_type)
-                        setattr(entity, "translated_description", translated_description)
-                        setattr(entity, "total_participants", total_participants)
+
+                        entity.group_description = group_description
+                        entity.group_status = group_status
+                        entity.group_username = group_username
+                        entity.first_post = first_post
+                        entity.group_url = group_url
+                        entity.chat_type = chat_type
+                        entity.translated_description = translated_description
+                        entity.total_participants = total_participants
 
                         if chat_type != "Channel":
-                            setattr(entity, "found_participants", found_participants)
-                            setattr(entity, "found_percentage", found_percentage)
-                            setattr(entity, "memberlist_filename", memberlist_filename)
+                            entity.found_participants = found_participants
+                            entity.found_percentage = found_percentage
+                            entity.memberlist_filename = memberlist_filename
                         else:
-                            setattr(entity, "found_participants", found_participants)
+                            entity.found_participants = found_participants
                         print_flag = "group_recap"
 
                         if chat_type == "Channel":
@@ -623,9 +552,7 @@ def cli(
                         if not os.path.isfile(log_file):
                             log_df.to_csv(log_file, sep=";", index=False)
                         else:
-                            log_df.to_csv(
-                                log_file, sep=";", mode="a", index=False, header=False
-                            )
+                            log_df.to_csv(log_file, sep=";", mode="a", index=False, header=False)
 
                         if forwards_check is True and comp_check is False:
                             color_print_green(
@@ -655,14 +582,11 @@ def cli(
 
                             color_print_green(" [-] ", "Fetching forwarded messages...")
 
-                            progress_bar = (
-                                Fore.GREEN + " [-] " + Style.RESET_ALL + "Progress: "
-                            )
+                            progress_bar = Fore.GREEN + " [-] " + Style.RESET_ALL + "Progress: "
 
                             with alive_bar(
                                 forward_count, dual_line=True, title=progress_bar, length=20
                             ) as bar:
-
                                 async for message in client.iter_messages(t):
                                     if message.forward is not None:
                                         try:
@@ -670,9 +594,7 @@ def cli(
                                             if f_from_id is not None:
                                                 ent = await client.get_entity(f_from_id)
                                                 username = ent.username
-                                                timestamp = parse_tg_date(message.date)[
-                                                    "timestamp"
-                                                ]
+                                                timestamp = parse_tg_date(message.date)["timestamp"]
 
                                                 substring = "PeerUser"
                                                 string = str(f_from_id)
@@ -740,7 +662,7 @@ def cli(
                                             )
 
                             if forward_count >= 15:
-                                forwards_found = forwards_df.Source.count()
+                                forwards_df.Source.count()
                                 value_count = forwards_df["Source"].value_counts()
                                 df01 = value_count.rename_axis("unique_values").reset_index(
                                     name="counts"
@@ -781,7 +703,7 @@ def cli(
                                 df02 = forwards_df.Source.unique()
                                 report_forward.unique_forwards = len(df02)
                                 report_forward.edgelist_file = edgelist_file
-                                print_shell("forwarder_stat",report_forward)
+                                print_shell("forwarder_stat", report_forward)
                             else:
                                 print(
                                     "\n"
@@ -792,7 +714,6 @@ def cli(
 
                         else:
                             if comp_check is True:
-
                                 messages = client.iter_messages(t)
 
                                 message_list = []
@@ -801,18 +722,14 @@ def cli(
                                 replies_list = []
                                 user_replier_list = []
 
-                                forward_count, private_count, message_count  = 0, 0, 0
+                                forward_count, private_count, message_count = 0, 0, 0
 
                                 if media_archive is True:
                                     files = []
                                     print("\n")
-                                    color_print_green(
-                                        " [!] ", "Media content will be archived"
-                                    )
+                                    color_print_green(" [!] ", "Media content will be archived")
 
-                                color_print_green(
-                                    " [!] ", "Calculating number of messages..."
-                                )
+                                color_print_green(" [!] ", "Calculating number of messages...")
 
                                 async for message in messages:
                                     if message is not None:
@@ -820,9 +737,7 @@ def cli(
 
                                 print("\n")
                                 color_print_green(" [-] ", "Fetching message archive...")
-                                progress_bar = (
-                                    Fore.GREEN + " [-] " + Style.RESET_ALL + "Progress: "
-                                )
+                                progress_bar = Fore.GREEN + " [-] " + Style.RESET_ALL + "Progress: "
 
                                 with alive_bar(
                                     message_count,
@@ -830,12 +745,9 @@ def cli(
                                     title=progress_bar,
                                     length=20,
                                 ) as bar:
-
                                     to_ent = await client.get_entity(t)
 
-                                    async for message in client.iter_messages(
-                                        t, limit=None
-                                    ):
+                                    async for message in client.iter_messages(t, limit=None):
                                         if message is not None:
                                             try:
                                                 c_archive = pd.DataFrame(
@@ -878,10 +790,10 @@ def cli(
                                                         "Starstruck",
                                                         "Vomit",
                                                         "Poop",
-                                                        "Pray", 
+                                                        "Pray",
                                                         "Edit_date",
                                                         "URL",
-                                                        "Media save directory"
+                                                        "Media save directory",
                                                     ],
                                                 )
 
@@ -897,7 +809,7 @@ def cli(
                                                     ],
                                                 )
 
-                                                #if message.reactions:
+                                                # if message.reactions:
                                                 #    if message.reactions.can_see_list:
                                                 #        c_reactioneer = pd.DataFrame(
                                                 #            user_reaction_list,
@@ -926,7 +838,7 @@ def cli(
                                                                 "Group name",
                                                             ],
                                                         )
-                                                        
+
                                                         c_replies = pd.DataFrame(
                                                             replies_list,
                                                             columns=[
@@ -953,19 +865,25 @@ def cli(
                                                                 repl.from_id.user_id
                                                             )
                                                             userdet = populate_user(user, t)
-                                                            user_replier_list.append(
-                                                                userdet
-                                                            )
+                                                            user_replier_list.append(userdet)
 
                                                             if translate_check == True:
                                                                 mss_txt = process_message(
                                                                     repl.text, user_language
                                                                 )
-                                                                original_language = mss_txt["original_language"],
-                                                                translated_text = mss_txt["translated_text"],
-                                                                translation_confidence = mss_txt["translation_confidence"],
+                                                                original_language = (
+                                                                    mss_txt["original_language"],
+                                                                )
+                                                                translated_text = (
+                                                                    mss_txt["translated_text"],
+                                                                )
+                                                                translation_confidence = (
+                                                                    mss_txt[
+                                                                        "translation_confidence"
+                                                                    ],
+                                                                )
                                                                 reply_text = mss_txt["message_text"]
-                                                            else: 
+                                                            else:
                                                                 original_language = "N/A"
                                                                 translated_text = "N/A"
                                                                 translation_confidence = "N/A"
@@ -982,31 +900,25 @@ def cli(
                                                                     original_language,
                                                                     translated_text,
                                                                     translation_confidence,
-                                                                    parse_tg_date(
-                                                                        repl.date
-                                                                    )["timestamp"],
+                                                                    parse_tg_date(repl.date)[
+                                                                        "timestamp"
+                                                                    ],
                                                                 ]
                                                             )
 
-                                                display_name = get_display_name(
-                                                    message.sender
-                                                )
+                                                display_name = get_display_name(message.sender)
                                                 if chat_type != "Channel":
                                                     substring = "PeerUser"
                                                     string = str(message.from_id)
                                                     if substring in string:
-                                                        user_id = re.sub(
-                                                            "[^0-9]", "", string
-                                                        )
+                                                        user_id = re.sub("[^0-9]", "", string)
                                                         nameID = str(user_id)
                                                     else:
                                                         nameID = str(message.from_id)
                                                 else:
                                                     nameID = to_ent.id
 
-                                                timestamp = parse_tg_date(message.date)[
-                                                    "timestamp"
-                                                ]
+                                                timestamp = parse_tg_date(message.date)["timestamp"]
                                                 reply = message.reply_to_msg_id
 
                                                 if translate_check == True:
@@ -1014,14 +926,12 @@ def cli(
                                                         message.text, user_language
                                                     )
                                                     message_text = _mess["message_text"]
-                                                    original_language = _mess[
-                                                        "original_language"
-                                                    ]
+                                                    original_language = _mess["original_language"]
                                                     translated_text = _mess["translated_text"]
                                                     translation_confidence = _mess[
                                                         "translation_confidence"
                                                     ]
-                                                else: 
+                                                else:
                                                     message_text = message.text
                                                     original_language = "N/A"
                                                     translated_text = "N/A"
@@ -1035,56 +945,78 @@ def cli(
                                                 if message.views is not None:
                                                     views = int(message.views)
                                                 else:
-                                                    views = 'N/A'
+                                                    views = "N/A"
 
                                                 if message.reactions:
                                                     reactions = message.reactions.results
                                                     total_reactions = 0
                                                     i = range(len(reactions))
-                                                    
-                                                    for idx, i in enumerate(reactions):
+
+                                                    for _idx, i in enumerate(reactions):
                                                         total_reactions = total_reactions + i.count
-                                                        thumbs_up = i.count if i.reaction == '👍' else 0
-                                                        thumbs_down = i.count if i.reaction == '👎' else 0
-                                                        heart = i.count if i.reaction == '❤️' else 0
-                                                        fire = i.count if i.reaction == '🔥' else 0
-                                                        smile_with_hearts = i.count if i.reaction == '🥰' else 0
-                                                        clap = i.count if i.reaction == '👏' else 0
-                                                        smile = i.count if i.reaction == '😁' else 0
-                                                        thinking = i.count if i.reaction == '🤔' else 0
-                                                        exploding_head = i.count if i.reaction == '🤯' else 0
-                                                        scream = i.count if i.reaction == '😱' else 0
-                                                        angry = i.count if i.reaction == '🤬' else 0
-                                                        single_tear = i.count if i.reaction == '😢' else 0
-                                                        party_popper = i.count if i.reaction == '🎉' else 0
-                                                        starstruck = i.count if i.reaction == '🤩' else 0
-                                                        vomiting = i.count if i.reaction == '🤮' else 0
-                                                        poop = i.count if i.reaction == '💩' else 0
-                                                        praying = i.count if i.reaction == '🙏' else 0
+                                                        thumbs_up = (
+                                                            i.count if i.reaction == "👍" else 0
+                                                        )
+                                                        thumbs_down = (
+                                                            i.count if i.reaction == "👎" else 0
+                                                        )
+                                                        heart = i.count if i.reaction == "❤️" else 0
+                                                        fire = i.count if i.reaction == "🔥" else 0
+                                                        smile_with_hearts = (
+                                                            i.count if i.reaction == "🥰" else 0
+                                                        )
+                                                        clap = i.count if i.reaction == "👏" else 0
+                                                        smile = i.count if i.reaction == "😁" else 0
+                                                        thinking = (
+                                                            i.count if i.reaction == "🤔" else 0
+                                                        )
+                                                        exploding_head = (
+                                                            i.count if i.reaction == "🤯" else 0
+                                                        )
+                                                        scream = (
+                                                            i.count if i.reaction == "😱" else 0
+                                                        )
+                                                        angry = i.count if i.reaction == "🤬" else 0
+                                                        single_tear = (
+                                                            i.count if i.reaction == "😢" else 0
+                                                        )
+                                                        party_popper = (
+                                                            i.count if i.reaction == "🎉" else 0
+                                                        )
+                                                        starstruck = (
+                                                            i.count if i.reaction == "🤩" else 0
+                                                        )
+                                                        vomiting = (
+                                                            i.count if i.reaction == "🤮" else 0
+                                                        )
+                                                        poop = i.count if i.reaction == "💩" else 0
+                                                        praying = (
+                                                            i.count if i.reaction == "🙏" else 0
+                                                        )
                                                 else:
-                                                    total_reactions = 'N/A'
-                                                    thumbs_up = 'N/A'
-                                                    thumbs_down = 'N/A'
-                                                    heart = 'N/A'
-                                                    fire = 'N/A'
-                                                    smile_with_hearts = 'N/A'
-                                                    clap = 'N/A'
-                                                    smile = 'N/A'
-                                                    thinking = 'N/A'
-                                                    exploding_head = 'N/A'
-                                                    scream = 'N/A'
-                                                    angry = 'N/A'
-                                                    single_tear = 'N/A'
-                                                    party_popper = 'N/A'
-                                                    starstruck = 'N/A'
-                                                    vomiting = 'N/A'
-                                                    poop = 'N/A'
-                                                    praying = 'N/A'
+                                                    total_reactions = "N/A"
+                                                    thumbs_up = "N/A"
+                                                    thumbs_down = "N/A"
+                                                    heart = "N/A"
+                                                    fire = "N/A"
+                                                    smile_with_hearts = "N/A"
+                                                    clap = "N/A"
+                                                    smile = "N/A"
+                                                    thinking = "N/A"
+                                                    exploding_head = "N/A"
+                                                    scream = "N/A"
+                                                    angry = "N/A"
+                                                    single_tear = "N/A"
+                                                    party_popper = "N/A"
+                                                    starstruck = "N/A"
+                                                    vomiting = "N/A"
+                                                    poop = "N/A"
+                                                    praying = "N/A"
 
                                                 if media_archive == True:
                                                     if message.media is not None:
                                                         path = await message.download_media(
-                                                            file = media_directory
+                                                            file=media_directory
                                                         )
                                                         files.append(path)
                                                         media_file = path
@@ -1092,7 +1024,7 @@ def cli(
                                                         media_file = "N/A"
                                                 else:
                                                     media_file = "N/A"
-                                                
+
                                                 if message.media is not None:
                                                     has_media = "TRUE"
                                                 else:
@@ -1108,41 +1040,64 @@ def cli(
                                                 else:
                                                     edit_date = "None"
 
-                                                '''Need to find a way to calculate these in case these figures don't exist to make it
+                                                """Need to find a way to calculate these in case these figures don't exist to make it
                                                 comparable across channels for a total engagement number (e.g. if replies/reactions are off). 
-                                                If not N/A would cover if it's off, zero if it's none. Working on some better logic here.'''
+                                                If not N/A would cover if it's off, zero if it's none. Working on some better logic here."""
 
-                                                if reply_count != 'N/A' and total_participants is not None:
-                                                    reply_reach_ER = (reply_count / int(total_participants)) * 100
+                                                if (
+                                                    reply_count != "N/A"
+                                                    and total_participants is not None
+                                                ):
+                                                    reply_reach_ER = (
+                                                        reply_count / int(total_participants)
+                                                    ) * 100
                                                 else:
-                                                    reply_reach_ER = 'N/A'
+                                                    reply_reach_ER = "N/A"
 
-                                                if reply_count != 'N/A' and views != 'N/A':
-                                                    reply_impressions_ER = (reply_count / int(views)) * 100
+                                                if reply_count != "N/A" and views != "N/A":
+                                                    reply_impressions_ER = (
+                                                        reply_count / int(views)
+                                                    ) * 100
                                                 else:
-                                                    reply_impressions_ER = 'N/A'
+                                                    reply_impressions_ER = "N/A"
 
-                                                if forwards != 'N/A' and total_participants is not None:
-                                                    forwards_reach_ER = (forwards / int(total_participants)) * 100
+                                                if (
+                                                    forwards != "N/A"
+                                                    and total_participants is not None
+                                                ):
+                                                    forwards_reach_ER = (
+                                                        forwards / int(total_participants)
+                                                    ) * 100
                                                 else:
-                                                    forwards_reach_ER = 'N/A'
+                                                    forwards_reach_ER = "N/A"
 
-                                                if forwards != 'N/A' and views != 'N/A':
-                                                    forwards_impressions_ER = (forwards / int(views)) * 100
+                                                if forwards != "N/A" and views != "N/A":
+                                                    forwards_impressions_ER = (
+                                                        forwards / int(views)
+                                                    ) * 100
                                                 else:
-                                                    forwards_impressions_ER = 'N/A'
+                                                    forwards_impressions_ER = "N/A"
 
-                                                if total_reactions != 'N/A' and total_participants is not None:
-                                                    reactions_reach_ER = (total_reactions / int(total_participants)) * 100
+                                                if (
+                                                    total_reactions != "N/A"
+                                                    and total_participants is not None
+                                                ):
+                                                    reactions_reach_ER = (
+                                                        total_reactions / int(total_participants)
+                                                    ) * 100
                                                 else:
-                                                    reactions_reach_ER = 'N/A'
+                                                    reactions_reach_ER = "N/A"
 
-                                                if total_reactions != 'N/A' and views != 'N/A':
-                                                    reactions_impressions_ER = (total_reactions / int(views)) * 100
+                                                if total_reactions != "N/A" and views != "N/A":
+                                                    reactions_impressions_ER = (
+                                                        total_reactions / int(views)
+                                                    ) * 100
                                                 else:
-                                                    reactions_impressions_ER = 'N/A'
+                                                    reactions_impressions_ER = "N/A"
 
-                                                post_url = "https://t.me/s/" + t + "/" + str(message.id)
+                                                post_url = (
+                                                    "https://t.me/s/" + t + "/" + str(message.id)
+                                                )
 
                                                 message_list.append(
                                                     [
@@ -1183,7 +1138,7 @@ def cli(
                                                         starstruck,
                                                         vomiting,
                                                         poop,
-                                                        praying, 
+                                                        praying,
                                                         edit_date,
                                                         post_url,
                                                         media_file,
@@ -1199,9 +1154,7 @@ def cli(
                                                         )
 
                                                         if f_from_id is not None:
-                                                            ent = await client.get_entity(
-                                                                f_from_id
-                                                            )
+                                                            ent = await client.get_entity(f_from_id)
 
                                                             user_string = "user_id"
                                                             channel_string = "broadcast"
@@ -1209,30 +1162,13 @@ def cli(
                                                             if user_string in str(ent):
                                                                 ent_type = "User"
                                                             else:
-                                                                if channel_string in str(
-                                                                    ent
-                                                                ):
-                                                                    if (
-                                                                        ent.broadcast
-                                                                        is True
-                                                                    ):
-                                                                        ent_type = (
-                                                                            "Channel"
-                                                                        )
-                                                                    elif (
-                                                                        ent.megagroup
-                                                                        is True
-                                                                    ):
-                                                                        ent_type = (
-                                                                            "Megagroup"
-                                                                        )
-                                                                    elif (
-                                                                        ent.gigagroup
-                                                                        is True
-                                                                    ):
-                                                                        ent_type = (
-                                                                            "Gigagroup"
-                                                                        )
+                                                                if channel_string in str(ent):
+                                                                    if ent.broadcast is True:
+                                                                        ent_type = "Channel"
+                                                                    elif ent.megagroup is True:
+                                                                        ent_type = "Megagroup"
+                                                                    elif ent.gigagroup is True:
+                                                                        ent_type = "Gigagroup"
                                                                     else:
                                                                         ent_type = "Chat"
                                                                 else:
@@ -1257,17 +1193,15 @@ def cli(
                                                                         "",
                                                                         string_1,
                                                                     )
-                                                                    user_id = await client.get_entity(
-                                                                        PeerUser(
-                                                                            int(user_id)
+                                                                    user_id = (
+                                                                        await client.get_entity(
+                                                                            PeerUser(int(user_id))
                                                                         )
                                                                     )
                                                                     user_id = str(user_id)
                                                                     result = (
                                                                         "User: "
-                                                                        + str(
-                                                                            ent.first_name
-                                                                        )
+                                                                        + str(ent.first_name)
                                                                         + " / ID: "
                                                                         + str(user_id)
                                                                     )
@@ -1360,16 +1294,12 @@ def cli(
                                         ) as repliers_file:
                                             c_repliers.to_csv(repliers_file, sep=";")
 
-                                with open(
-                                    file_archive, "w+", encoding="utf-8"
-                                ) as archive_file:
+                                with open(file_archive, "w+", encoding="utf-8") as archive_file:
                                     c_archive.to_csv(archive_file, sep=";")
 
                                 if json_check == True:
                                     c_archive.to_json(
-                                        json_file 
-                                        + alphanumeric
-                                        + "_archive.json",
+                                        json_file + alphanumeric + "_archive.json",
                                         orient="records",
                                         compression="infer",
                                         lines=True,
@@ -1384,9 +1314,7 @@ def cli(
 
                                     if json_check == True:
                                         c_forwards.to_json(
-                                            json_file 
-                                            + alphanumeric 
-                                            + "_edgelist.json",
+                                            json_file + alphanumeric + "_edgelist.json",
                                             orient="records",
                                             compression="infer",
                                             lines=True,
@@ -1402,18 +1330,18 @@ def cli(
                                     print_shell("channel_stat", report_obj)
                                 else:
                                     pvalue_count = c_archive["Display_name"].value_counts()
-                                    df03 = pvalue_count.rename_axis(
-                                        "unique_values"
-                                    ).reset_index(name="counts")
+                                    df03 = pvalue_count.rename_axis("unique_values").reset_index(
+                                        name="counts"
+                                    )
 
-                                    '''
+                                    """
                                     message_frequency_count = {}
                                     message_text = {}
                                     word_count = {}
                                     most_used_words = {}
                                     most_used_words_filtered = {}
-                                    '''
-                                    #message stats, top words
+                                    """
+                                    # message stats, top words
 
                                     report_obj.poster_one = (
                                         str(df03.iloc[0]["unique_values"])
@@ -1494,13 +1422,15 @@ def cli(
                                         replier_unique = len(replier_count_df)
                                         repliers.user_replier_list_len = len(user_replier_list)
                                         repliers.reply_file_archive = str(reply_file_archive)
-                                        repliers.reply_memberlist_filename = str(reply_memberlist_filename)
+                                        repliers.reply_memberlist_filename = str(
+                                            reply_memberlist_filename
+                                        )
                                         repliers.replier_unique = str(replier_unique)
                                         print_shell("reply_stat", repliers)
 
                                 if forwards_check is True:
                                     if forward_count >= 15:
-                                        forwards_found = c_forwards.Source.count()
+                                        c_forwards.Source.count()
                                         value_count = c_forwards["Source"].value_counts()
                                         c_f_stats = value_count.rename_axis(
                                             "unique_values"
@@ -1563,11 +1493,7 @@ def cli(
                             user_first_name = my_user.first_name
                             user_last_name = my_user.last_name
                             if user_last_name is not None:
-                                user_full_name = (
-                                    str(user_first_name)
-                                    + " "
-                                    + str(user_last_name)
-                                )
+                                user_full_name = str(user_first_name) + " " + str(user_last_name)
                             else:
                                 user_full_name = str(user_first_name)
 
@@ -1597,20 +1523,18 @@ def cli(
                                 if 1 in entity.restriction_reason:
                                     android_restriction = entity.restriction_reason[1]
                                     user_restrictions = (
-                                        str(ios_restriction)
-                                        + ", "
-                                        + str(android_restriction)
+                                        str(ios_restriction) + ", " + str(android_restriction)
                                     )
                                 else:
                                     user_restrictions = str(ios_restriction)
                             else:
                                 user_restrictions = "None"
 
-                            setattr(my_user, "user_restrictions", str(user_restrictions))
-                            setattr(my_user, "user_full_name", str(user_full_name))
-                            setattr(my_user, "user_photo", str(user_photo))
-                            setattr(my_user, "user_status", str(user_status))
-                            setattr(my_user, "target", t)
+                            my_user.user_restrictions = str(user_restrictions)
+                            my_user.user_full_name = str(user_full_name)
+                            my_user.user_photo = str(user_photo)
+                            my_user.user_status = str(user_status)
+                            my_user.target = t
                             print_shell("user", my_user)
 
                         except ValueError:
@@ -1625,7 +1549,6 @@ def cli(
                             )
 
                     if location_check == True:
-
                         print(
                             Fore.GREEN
                             + " [!] "
@@ -1669,19 +1592,18 @@ def cli(
                         for user in result.updates[0].peers:
                             try:
                                 user_df = pd.DataFrame(
-                                    locations_list, columns=[
-                                        "User_ID",
-                                        "Distance"]
+                                    locations_list, columns=["User_ID", "Distance"]
                                 )
 
                                 l_save_df = pd.DataFrame(
-                                    l_save_list, columns=[
+                                    l_save_list,
+                                    columns=[
                                         "User_ID",
                                         "Distance",
                                         "Latitude",
                                         "Longitude",
-                                        "Date_retrieved"
-                                    ]
+                                        "Date_retrieved",
+                                    ],
                                 )
 
                                 if hasattr(user, "peer"):
@@ -1691,15 +1613,7 @@ def cli(
                                     distance = user.distance
 
                                 locations_list.append([ID, distance])
-                                l_save_list.append(
-                                    [
-                                        ID,
-                                        distance,
-                                        latitude,
-                                        longitude,
-                                        filetime
-                                    ]
-                                )
+                                l_save_list.append([ID, distance, latitude, longitude, filetime])
                             except:
                                 pass
 
@@ -1724,20 +1638,20 @@ def cli(
                             elif distance == 3000:
                                 distance_obj.d3000 += 1
 
-
-                        with open(save_file, "w+", encoding="utf-8") as f:  
+                        with open(save_file, "w+", encoding="utf-8") as f:
                             l_save_df.to_csv(f, sep=";", index=False)
 
                         total = len(locations_list)
 
                         distance_obj.save_file = save_file
                         distance_obj.total = total
-                        print_shell("location_report",distance_obj)
+                        print_shell("location_report", distance_obj)
                         # can also do the same for channels with similar output file to users
                         # may one day add trilateration to find users closest to exact point
-                        
+
     with client:
         client.loop.run_until_complete(main())
+
 
 if __name__ == "__main__":
     cli()

@@ -1,0 +1,24 @@
+# CANONICAL lint caller stub.
+#
+# Every repository's .github/workflows/lint.yml must be byte-identical to this file.
+#
+# There is deliberately NO `with:` block. The reusable detects Node and Python itself,
+# after checkout. The previous design had each caller compute the flags with
+# `hashFiles()`, which cannot work: reusable-workflow inputs are evaluated before a
+# runner exists, so those callers failed at STARTUP with zero jobs on every push.
+#
+# `published` is in the push filter because telepathydb's default branch is `published`
+# rather than `main`. Listing both keeps this file identical everywhere, which is the
+# property the drift check depends on.
+
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [ main, published ]
+  workflow_dispatch: {}
+
+jobs:
+  lint:
+    uses: prose-intelligence-ltd/.github/.github/workflows/lint.yml@main
