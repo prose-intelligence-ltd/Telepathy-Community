@@ -10,3 +10,4 @@ src/telepathy.egg-info/dependency_links.txt
 src/telepathy.egg-info/entry_points.txt
 src/telepathy.egg-info/requires.txt
 src/telepathy.egg-info/top_level.txt
+tests/test_telepathy.py

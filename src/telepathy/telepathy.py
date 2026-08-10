@@ -14,7 +14,7 @@ import time
 import configparser
 import asyncio
 
-from src.telepathy.utils import (
+from utils import (
     print_banner,
     color_print_green,
     populate_user,
@@ -48,7 +48,7 @@ from telethon import TelegramClient, functions, types, utils
 from telethon.utils import get_display_name, get_message_id
 from alive_progress import alive_bar
 from colorama import Fore, Style
-from src.telepathy.const import telepathy_file
+from const import telepathy_file
 
 """
 try:
@@ -1663,7 +1663,7 @@ class Telepathy_cli:
 
     def create_tg_client(self):
         if os.path.isfile(self.login) == False:
-            api_id, api_hash, phone_number = self.login_function()
+            self.api_id, self.api_hash, self.phone_number = self.login_function()
             with open(self.login, "w+", encoding="utf-8") as f:
                 f.write(api_id + "," + api_hash + "," + phone_number + "\n")
         else:
@@ -1741,13 +1741,13 @@ class Telepathy_cli:
                     await group_channel.analyze_group_channel()
 
     class PlaceholderClass:
-    def __init__(self):
-        self.d500 = 0
-        self.d1000 = 0
-        self.d2000 = 0
-        self.d3000 = 0
-        self.save_file = ""
-        self.total = 0
+        def __init__(self):
+            self.d500 = 0
+            self.d1000 = 0
+            self.d2000 = 0
+            self.d3000 = 0
+            self.save_file = ""
+            self.total = 0
 
 async def analyze_location(self, _target):
     print(

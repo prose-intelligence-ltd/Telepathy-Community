@@ -1,6 +1,6 @@
 from colorama import Fore, Style
 from googletrans import Translator
-from src.telepathy.const import __version__, user_agent
+from const import __version__, user_agent
 import requests
 import textwrap
 from bs4 import BeautifulSoup
