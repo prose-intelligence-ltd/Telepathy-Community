@@ -5,6 +5,31 @@ Telepathy has been described as the "swiss army knife of Telegram tools," allowi
 The toolkit has already seen a wide variety of use cases, including but not limited to: in investigative and data journalism, by academic and research institutions, and for intelligence gathering and analysis.
 
 
+
+## Purpose
+
+Telepathy-Community is the public release of Telepathy, a Python command-line OSINT toolkit for collecting and analysing public Telegram chats. `setup.py` installs a single console entry point, `telepathy`, bound to `telepathy.telepathy:cli`; the toolkit's features (basic and comprehensive chat scans, memberlist collection, forward edgelists, media archiving, user and location lookups, chat export, reply retrieval and translation) are described in the usage sections below. The repository is public, MIT-licensed, and carries 1,232 stars and 161 forks. It has no internal runtime and nothing in the Prose estate depends on it: `prose-catalogue` records `runtime: none`. External users are the only consumers of this repository.
+
+**This repository is not actively maintained, and the rest of this README does not reflect that.** The last change to the toolkit's own source was on 2024-07-12. Every commit since is repository housekeeping: security-workflow caller stubs on 2026-08-07 and a Dependabot dependency bump on 2026-08-10. The published package on PyPI, `telepathy` 2.3.4, was last uploaded on 2024-07-12 and has not been republished since. There are 41 open issues; installation and runtime failure reports filed between 2023 and 2025 stand with no maintainer reply. Sections of this README written in the future tense — the upcoming-changes and upcoming-features lists, and the statements that deeper analytics and further location-scanning support are planned or being explored — describe work that is not in progress. `src/telepathy/const.py` likewise still sets `__status__ = "Development"`.
+
+Two concrete consequences for anyone arriving from the installation instructions:
+
+- **The install-from-source path is broken on the default branch.** `src/telepathy/telepathy.py` does not parse: `class PlaceholderClass:` at line 1743 is followed by an unindented body, raising `IndentationError` at line 1744. The package's main module is therefore unimportable, and `pip install -r requirements.txt` against a fresh clone produces a non-working `telepathy` command. The stale duplicate under `build/lib/telepathy/` does parse, but it is a 2024 copy that is not what an install uses. The package directories also contain `__init.py__` rather than `__init__.py`, in both `src/` and `src/telepathy/`.
+- **The two documented install paths do not agree.** `setup.py` requires `telethon == 1.36.0` while `requirements.txt` pins `Telethon==1.25.2`, so a pip install and a source install get different core libraries. Version strings disagree too: this README and `setup.py` say 2.3.4, `src/telepathy/const.py` says 2.3.2.
+
+The `pip3 install telepathy` path installs the July 2024 release, which predates none of the open bug reports above and has not changed since. UNKNOWN: whether the published 2.3.4 sdist carries the same syntax error as the repository source — the sdists committed under `dist/` are 2.3.2 and earlier, and the published 2.3.4 artefact was not downloaded or inspected. The clone URL given in the installation section points at the repository's former path and resolves to the current location via a GitHub redirect (HTTP 301), so it still works.
+
+This section is written against the default branch, `main`, at commit `f1a5b95`.
+
+## Ownership
+
+Owner: **Al Baker — al@prose.ltd**, sole operator. This is confirmed by `prose-catalogue` (`owner: al`) and by the `owner-al` topic on the GitHub repository. There is no `CODEOWNERS` file on the default branch.
+
+Escalation for anything concerning this repository goes to al@prose.ltd. External bug reports are not currently triaged, and no response time is offered — the open-issue record above is the accurate expectation to set.
+
+The contact routes named elsewhere in this README, in the package metadata (`setup.py` `author_email`, and `__maintainer__` and `__email__` in `src/telepathy/const.py`) and in the CLI start-up banner printed by `src/telepathy/utils.py` are a former maintainer's personal address and social account. They are historical attribution, not Prose Intelligence support channels, and correspondence sent to them will not reach the owner.
+
+`prose-catalogue` records `lifecycle: development` for this repository, but the GitHub repository carries no `lifecycle-*` topic — its only topic is `owner-al`. That divergence is documented here rather than resolved: changing a repository's lifecycle alters which CI checks are required, and is the owner's decision alone.
 ## Are you looking for a enterprise-grade version of Telepathy?
 Visit [prose.ltd](https://prose.ltd) to find out how we can turbocharge your Telegram data collection with Telepathy Pro. No accounts, dealing with the command line, or hassle needed!
 
