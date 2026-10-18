@@ -51,6 +51,17 @@ $ cd Telepathy
 $ pip install -r requirements.txt
 ```
 
+### Install with OTinstaller
+
+On Linux you can also use [OTinstaller](https://github.com/OSINTVerseHQ/OTinstaller), a third-party tool manager that installs the PyPI release into its own virtualenv. It isn't maintained by the Telepathy authors, so please report problems with it [on the OTinstaller tracker](https://github.com/OSINTVerseHQ/OTinstaller/issues). Telepathy's dependencies need Python 3.12 or older, hence `--python python3.12`, and Telepathy still asks for your Telegram API details and login on first run, as described under Setup.
+
+```
+$ pipx install --python python3.12 otinstaller
+$ otinstaller init
+$ otinstaller install telepathy
+$ otinstaller run telepathy tg:durov   # same as telepathy -t durov
+```
+
 ## Setup
 
 On first use, Telepathy will ask for your Telegram API details (obtained from my.telegram.org). Once those are set up, it will prompt you to enter your phone number again and then send an authorization code to your Telegram account. If you have two-factor authentication enabled, you'll be asked to input your Telegram password.
